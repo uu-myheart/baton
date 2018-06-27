@@ -4,39 +4,82 @@ namespace Curia\Baton;
 
 use SplQueue;
 use Exception;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Server\MiddlewareInterface;
-use Psr\Http\Server\RequestHandlerInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
-class Baton implements RequestHandlerInterface
+class Baton
 {
+    protected $container;
+
 	protected $queue;
 
-	public function __construct(iterable $middlewares)
+	protected $method = 'process';
+
+	protected $passable;
+
+    /**
+     * Baton constructor.
+     * @param $container
+     */
+    public function __construct($container = null)
+    {
+        $this->container = $container;
+    }
+
+    public function send($passable)
+    {
+        $this->passable = $passable;
+
+        return $this;
+    }
+
+	public function through(iterable $strainers)
 	{
 		//TODO
-		if (count($middlewares) === 0) {
+		if (count($strainers) === 0) {
 			throw new Exception("[middlewares] must not be empty", 1);
 		}
 
 		$queue = new SplQueue;
 
-		foreach ($middlewares as $middleware) {
-			$queue->enqueue($middleware);
+		foreach ($strainers as $strainer) {
+		    if (is_string($strainer)) {
+                $strainer = $this->container->get($strainer);
+            }
+
+			$queue->enqueue($strainer);
 		}
+
+		// Carry back.
+        $queue->enqueue(function ($passable) {
+		    return $passable;
+        });
 
 		$this->queue = $queue;
+
+		return $this;
 	}
 
-	public function handle(ServerRequestInterface $request): ResponseInterface
+	public function handle($request)
 	{
-		$middleware = $this->queue->dequeue();
+        $strainer = $this->queue->dequeue();
 
-		if ($middleware instanceof MiddlewareInterface) {
-			return $middleware->process($request, $this);
+		if (method_exists($strainer, $this->method)) {
+			return $strainer->{$this->method}($request, $this);
 		}
 
-		return $middleware($request, $this);
+		return $strainer($request, $this);
+	}
+
+    public function via($method)
+    {
+        $this->method = $method;
+
+        return $this;
+	}
+
+    public function then($callback)
+    {
+        return $callback(
+            $this->handle($this->passable)
+        );
 	}
 }
