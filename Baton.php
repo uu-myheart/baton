@@ -2,6 +2,9 @@
 
 namespace Curia\Baton;
 
+use SplQueue;
+use Exception;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -12,7 +15,12 @@ class Baton implements RequestHandlerInterface
 
 	public function __construct(iterable $middlewares)
 	{
-		$queue = new \SplQueue;
+		//TODO
+		if (count($middlewares) === 0) {
+			throw new Exception("[middlewares] must not be empty", 1);
+		}
+
+		$queue = new SplQueue;
 
 		foreach ($middlewares as $middleware) {
 			$queue->enqueue($middleware);
