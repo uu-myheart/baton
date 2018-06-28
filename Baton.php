@@ -2,6 +2,7 @@
 
 namespace Curia\Baton;
 
+use Psr\Http\Message\ServerRequestInterface;
 use SplQueue;
 use Exception;
 
@@ -15,10 +16,6 @@ class Baton
 
 	protected $passable;
 
-    /**
-     * Baton constructor.
-     * @param $container
-     */
     public function __construct($container = null)
     {
         $this->container = $container;
@@ -33,7 +30,6 @@ class Baton
 
 	public function through(iterable $strainers)
 	{
-		//TODO
 		if (count($strainers) === 0) {
 			throw new Exception("[middlewares] must not be empty", 1);
 		}
@@ -47,11 +43,6 @@ class Baton
 
 			$queue->enqueue($strainer);
 		}
-
-		// Carry back.
-        $queue->enqueue(function ($passable) {
-		    return $passable;
-        });
 
 		$this->queue = $queue;
 
@@ -76,10 +67,15 @@ class Baton
         return $this;
 	}
 
-    public function then($callback)
+    public function then(Callable $destination)
     {
-        return $callback(
-            $this->handle($this->passable)
-        );
+        $this->queue->enqueue($destination);
+
+        return $this->handle($this->passable);
+	}
+
+    public function __invoke($request)
+    {
+        return $this->handle($request);
 	}
 }

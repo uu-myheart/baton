@@ -1,6 +1,6 @@
 {
     "name": "curia/baton",
-    "description": "A psr-15 Midleware processor",
+    "description": "A Midleware Processor",
     "license": "MIT",
     "authors": [
         {
