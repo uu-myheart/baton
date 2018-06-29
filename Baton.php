@@ -65,10 +65,6 @@ class Baton
      */
 	public function through(iterable $strainers)
 	{
-		if (count($strainers) === 0) {
-			throw new Exception("[middlewares] must not be empty", 1);
-		}
-
 		$queue = new SplQueue;
 
 		foreach ($strainers as $strainer) {
